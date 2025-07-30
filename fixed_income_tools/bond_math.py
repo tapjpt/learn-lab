@@ -125,7 +125,32 @@ def calc_spot_rate(clean_price, term, face_value):
 
 
 # --- BOOTSTRAPPING SPOT RATES ---
-def bootstrap_spot_rate(coupon, face_value, price, known_spots):
+def bootstrap_spot_rates(par_rates, frequency=2, face_value=100):
+    """
+    Bootstraps spot rates from par rates.
+    
+    Parameters:
+    - par_rates: list of par rates (as decimals, e.g., 0.026)
+    - frequency: compounding frequency (1 = annual, 2 = semiannual, etc.)
+    - face_value: default 100, can be adjusted if needed
+    
+    Returns:
+        - dict: {term_in_years: spot_rate}
+    """
+    spot_rates = []
+    for i, rate in enumerate(par_rates):
+        periods = i + 1
+        coupon = (rate * face_value) / frequency
+        price = face_value
+        pv_coupons = sum([
+            coupon / (1 + spot_rates[j])**(j + 1)
+            for j in range(periods - 1)
+        ])
+        numerator = coupon + face_value
+        denominator = price - pv_coupons
+        spot = (numerator / denominator)**(1 / periods) - 1
+        spot_rates.append(spot)
+    return spot_rates
 
 
 # --- FORWARD RATE FUNCTIONS ---
