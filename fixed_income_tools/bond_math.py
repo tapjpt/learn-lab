@@ -124,7 +124,7 @@ def calc_spot_rate(clean_price, term, face_value):
     return round(spot_rate, 6)
 
 
-# --- BOOTSTRAPPING SPOT RATES ---
+# --- BOOTSTRAPPING SPOT RATES FROM PAR RATES ---
 def bootstrap_spot_rates(par_rates, frequency=2, face_value=100):
     """
     Bootstraps spot rates from par rates.
@@ -137,20 +137,78 @@ def bootstrap_spot_rates(par_rates, frequency=2, face_value=100):
     Returns:
         - dict: {term_in_years: spot_rate}
     """
-    spot_rates = []
+    spot_rates = {}
     for i, rate in enumerate(par_rates):
-        periods = i + 1
+        periods = (i + 1) * frequency
         coupon = (rate * face_value) / frequency
         price = face_value
+
+        # Present value of known coupons using previously bootstrapped spot rates
         pv_coupons = sum([
-            coupon / (1 + spot_rates[j])**(j + 1)
-            for j in range(periods - 1)
+            coupon / (1 + spot_rates[t])**(t + 1)
+            for t in range(periods - 1)
         ])
+
         numerator = coupon + face_value
         denominator = price - pv_coupons
-        spot = (numerator / denominator)**(1 / periods) - 1
-        spot_rates.append(spot)
+
+        spot_periodic  = (numerator / denominator)**(1 / periods) - 1
+        spot_annual = frequency * spot_periodic
+
+        term = (i + 1)
+        spot_curve[term] = round(spot_annual, 6)
+
     return spot_rates
+
+
+# --- BOOTSTRAPPING SPOT RATES FROM CLEAN PRICES ---
+def bootstrap_from_bond_prices(bond_list, frequency = 2):
+    """
+    Bootstrap zero rates from bond prices.
+    
+    Parameters:
+    bond_list: List of dictionaries containing bond information
+    
+    Returns:
+    Dictionary mapping terms to zero rates
+    """
+    periodic_zeros = {}
+    
+    # Sort bonds by term
+    sorted_bonds = sorted(bond_list, key=lambda x: x['term'])
+    
+    for bond in sorted_bonds:
+        term = bond['term']
+        price = bond['price']
+        cash_flows = bond['cash_flows']
+        periods = int(term * frequency)
+        
+        # Calculate present value of known cash flows
+        # Only sum over periods for which we already have zero rates
+        pv_known = 0
+        for t in range(1, periods):
+            if t in periodic_zeros:  # Only use periods we've already calculated
+                pv_known += cash_flows[t] / ((1 + periodic_zeros[t])**t)
+        
+        # 4) final cash flow at full maturity
+        final_cf = cash_flows[periods]
+        total_pv = price - pv_known
+        
+        # 5) solve for periodic zero rate
+        r_periodic = (final_cf / total_pv)**(1/periods) - 1
+        
+        periodic_zeros[periods] = r_periodic
+    
+    # 6) annualize and map back to years
+    zero_rates = {
+        periods / frequency: round(r * frequency, 6)
+        for periods, r in periodic_zeros.items()
+    }
+    return zero_rates
+
+
+    
+
 
 
 # --- FORWARD RATE FUNCTIONS ---
