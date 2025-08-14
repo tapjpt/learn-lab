@@ -101,27 +101,6 @@ def bond_dcf(cf_dict, discount_rate, frequency):
 
 
 # --- SPOT RATE FUNCTIONS ---
-def calc_spot_rate(clean_price, term, face_value):
-    """
-    Compute the spot rate for a zero-coupon bond.
-    
-    Parameters:
-    -----------
-    clean_price : float
-        Price of the zero-coupon bond
-    term : int or float
-        Time to maturity (in years)
-    face_value : float
-        Par value of the bond (default = 1000)
-
-    Returns:
-    --------
-    float
-        Spot rate as a decimal (e.g., 0.05 for 5%)
-    """
-    discount_factor = face_value / clean_price
-    spot_rate = discount_factor ** (1 / term) - 1
-    return round(spot_rate, 6)
 
 
 # --- BOOTSTRAPPING SPOT RATES FROM PAR RATES ---
@@ -130,6 +109,7 @@ def bootstrap_spot_rates(par_rates, frequency=2, face_value=100):
     Bootstraps spot rates from par rates.
     
     Parameters:
+
     - par_rates: list of par rates (as decimals, e.g., 0.026)
     - frequency: compounding frequency (1 = annual, 2 = semiannual, etc.)
     - face_value: default 100, can be adjusted if needed
@@ -158,8 +138,8 @@ def bootstrap_spot_rates(par_rates, frequency=2, face_value=100):
         term = (i + 1)
         spot_curve[term] = round(spot_annual, 6)
 
-    return spot_rates
 
+    return spot_rates
 
 # --- BOOTSTRAPPING SPOT RATES FROM CLEAN PRICES ---
 def bootstrap_from_bond_prices(bond_list, frequency = 2):
@@ -207,12 +187,9 @@ def bootstrap_from_bond_prices(bond_list, frequency = 2):
     return zero_rates
 
 
-    
-
-
 
 # --- FORWARD RATE FUNCTIONS ---
-def forward_rate_1y1y(...):
+def forward_rate(...):
     """Compute 1-year forward rate 1 year from now..."""
 
 # --- BOND PRICING USING SPOT RATES ---
